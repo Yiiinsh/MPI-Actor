@@ -1,0 +1,9 @@
+#ifndef __MSG_TAG_H
+#define __MSG_TAG_H
+
+#define ACTOR_MSG_DELIMITER "#"
+
+#define MAIN_ACTOR_MSG_CREATE_TAG 900
+#define MAIN_ACTOR_MSG_TERMINATE_TAG 901
+
+#endif

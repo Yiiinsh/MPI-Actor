@@ -12,12 +12,9 @@ typedef struct __actor
     char type[ACTOR_TYPE_NAME_LIMIT];
     bool event_loop; // attributes indicates whether to continue the main loop
 
-    /* Actor Support Functions */
-    void* (*get_attr)(struct __actor *actor, char *key);
-
     /* Actor Behaviour Functions */
-    void (*on_message)(MPI_Status *status);
-    void (*execute_step)(int argc, void **argv);
+    void (*on_message)(struct __actor *self, MPI_Status *status);
+    void (*execute_step)(struct __actor *self, int argc, char **argv);
     void (*new_actor)(char *type, int count);
 
     /* Actor Lifecycle Function */

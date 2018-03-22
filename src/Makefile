@@ -1,10 +1,10 @@
 CC = mpicc
-CFLAGS = -cc=icc -std=c99 -O3
+CFLAGS = -cc=gcc -std=c99 -O3
 
 EXE = demo
 
-INC = actor.h main_actor.h msg_tag.h pool.h
-SRC = actor.c main_actor.c main.c pool.c
+INC = actor.h main_actor.h msg_tag.h pool.h clock_actor.h landcell_actor.h
+SRC = actor.c main_actor.c main.c pool.c clock_actor.c landcell_actor.c
 OBJ = $(SRC:.c=.o)
 
 all : $(EXE)

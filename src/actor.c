@@ -22,14 +22,20 @@ void actor_start(struct __actor *actor)
     int flag = 0;
     while (actor->event_loop)
     {
-        while (!flag & NULL != actor->execute_step)
+        while (!flag && actor->event_loop)
         {
-            MPI_IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
-            actor->execute_step(0, NULL);
+            MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
+            if (NULL != actor->execute_step)
+            {
+                actor->execute_step(actor, 0, NULL);
+            }
         }
         flag = 0;
-        
-        actor->on_message(&status);
+
+        if (NULL != actor->on_message)
+        {
+            actor->on_message(actor, &status);
+        }
     }
 
     if (NULL != actor->post_process)

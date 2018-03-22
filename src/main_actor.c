@@ -1,72 +1,59 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <mpi.h>
 
 #include "actor.h"
 #include "main_actor.h"
-#include "msg_tag.h"
 #include "pool.h"
+#include "configurations.h"
 
-#define BUF_LIMIT 1024
+void main_actor_pre_process(ACTOR *actor);
+void main_actor_post_process(ACTOR *actor);
 
-static void *get_attr(ACTOR *actor, char *key);
-static void main_actor_on_message(MPI_Status *status);
-static void main_actor_new_actor(char *type, int count);
-static void terminate(ACTOR *actor);
+int landcell_to_rank[LAND_CELL_COUNT]; // mapping land cell id to rank
 
 void create_main_actor(ACTOR *actor)
 {
     strncpy(actor->type, "MAIN", ACTOR_TYPE_NAME_LIMIT);
-    actor->event_loop = true;
+    actor->event_loop = false;
 
-    actor->get_attr = &get_attr;
-
-    actor->on_message = &main_actor_on_message;
+    actor->on_message = NULL;
     actor->execute_step = NULL;
-    actor->new_actor = &main_actor_new_actor;
+    actor->new_actor = NULL;
 
-    actor->pre_process = NULL;
-    actor->post_process = NULL;
-    actor->terminate = &terminate;
+    actor->pre_process = &main_actor_pre_process;
+    actor->post_process = &main_actor_post_process;
+    actor->terminate = NULL;
+
+    memset(landcell_to_rank, -1, sizeof(int) * LAND_CELL_COUNT);
 }
 
-void *get_attr(ACTOR *actor, char *key)
+/* Main actor does not support event loop, pre_process for simulation set up */
+void main_actor_pre_process(ACTOR *actor)
 {
-}
-
-void main_actor_on_message(MPI_Status *status)
-{
-    int count;
-    int source = status->MPI_SOURCE;
-    int tag = status->MPI_TAG;
-
-    switch (tag)
+    /* Init necessary actors in a blocking way to ensure the start order */
+    int landcell_rank;
+    for (int i = 0; i < LAND_CELL_COUNT; ++i)
     {
-    case MAIN_ACTOR_MSG_CREATE_TAG:
-        /* Create message are composed of two args: type name and number */
-        MPI_Get_count(status, MPI_CHAR, &count);
-        char buf[BUF_LIMIT], type[BUF_LIMIT];
-        MPI_Recv(buf, count, MPI_CHAR, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        char *msg[2];
-        msg[0] = strtok(buf, ACTOR_MSG_DELIMITER);
-        msg[1] = strtok(buf, ACTOR_MSG_DELIMITER);
-
-        main_actor_new_actor(msg[0], atoi(msg[1]));
-        break;
-    case MAIN_ACTOR_MSG_TERMINATE_TAG:
-        break;
-    default:
-        fprintf(stdout, "Ignore unknown tag:%d\n from rank %d\n", tag, source);
+        landcell_rank = startWorkerProcess();
+        MPI_Ssend("LANDCELL", 9, MPI_CHAR, landcell_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+        landcell_to_rank[i] = landcell_rank;
     }
+
+    int clock_rank = startWorkerProcess();
+    MPI_Ssend("CLOCK", 6, MPI_CHAR, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+    MPI_Ssend(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+    // get worker actor rank and send them their type
 }
 
-void main_actor_new_actor(char *type, int count)
+/* Main actor does not support event loop, post_process for master poll */
+void main_actor_post_process(ACTOR *actor)
 {
-    int rank = startWorkerProcess();
-    fprintf(stdout, "Start worker on rank %d\n", rank);
-}
-
-void terminate(ACTOR *actor)
-{
+    int main_actor_status = masterPoll();
+    while (main_actor_status)
+    {
+        main_actor_status = masterPoll();
+    }
 }

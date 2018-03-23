@@ -10,6 +10,7 @@
 #include "landcell_actor.h"
 #include "squirrel_actor.h"
 #include "configurations.h"
+#include "squirrel-functions.h"
 
 #define RANK_MASTER 0
 #define TYPE_NAME_BUF 64
@@ -35,7 +36,6 @@ int main(int argc, char **argv)
         char type[TYPE_NAME_BUF];
         memset(type, '\0', TYPE_NAME_BUF);
         MPI_Recv(type, TYPE_NAME_BUF, MPI_CHAR, RANK_MASTER, ACTOR_CREATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
         if (strcmp(type, "CLOCK") == 0)
         {
             create_clock_actor(&actor);
@@ -43,6 +43,10 @@ int main(int argc, char **argv)
         else if (strcmp(type, "LANDCELL") == 0)
         {
             create_landcell_actor(&actor);
+        }
+        else if (strcmp(type, "SQUIRREL") == 0)
+        {
+            create_squirrel_actor(&actor);
         }
         actor_start(&actor);
     }

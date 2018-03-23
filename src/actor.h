@@ -15,7 +15,7 @@ typedef struct __actor
     /* Actor Behaviour Functions */
     void (*on_message)(struct __actor *self, MPI_Status *status);
     void (*execute_step)(struct __actor *self, int argc, char **argv);
-    void (*new_actor)(char *type, int count);
+    void (*new_actor)(struct __actor *self, char *type, int count);
 
     /* Actor Lifecycle Function */
     void (*pre_process)(struct __actor *self);

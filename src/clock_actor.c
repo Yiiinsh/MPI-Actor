@@ -55,12 +55,15 @@ void clock_actor_execute_step(ACTOR *actor, int argc, char **argv)
     sleep(MONTH_STEP);
 
     int buf[5];
+    fprintf(stdout, "[MONTH %3d]\n", current_month);
+    fprintf(stdout, "%-25s%-25s%-25s%-25s%-25s\n", "infec1", "infec2", "population1", "population2", "population3");
     for (int i = 0; i < LAND_CELL_COUNT; ++i)
     {
         MPI_Ssend(NULL, 0, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD);
         MPI_Recv(buf, 5, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        fprintf(stdout, "[MONTH %d] infection level for past two month : %d %d, population influx for past three month : %d %d %d\n", current_month, buf[0], buf[1], buf[2], buf[3], buf[4]);
+        fprintf(stdout, "%-25d%-25d%-25d%-25d%-25d\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
     }
+    fprintf(stdout, "\n");
 
     ++current_month;
     if (current_month > MONTH_LIMIT)

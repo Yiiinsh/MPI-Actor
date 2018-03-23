@@ -5,15 +5,9 @@
 #include <unistd.h>
 #include <mpi.h>
 
-#include "clock_actor.h"
+#include "customized_actors.h"
 #include "pool.h"
-#include "msg_tag.h"
 #include "configurations.h"
-
-#define RANK_MAIN_ACTOR 0
-
-#define MONTH_LIMIT 24
-#define MONTH_STEP 1
 
 void clock_actor_on_message(ACTOR *actor, MPI_Status *status);
 void clock_actor_execute_step(ACTOR *actor, int argc, char **argv);
@@ -59,7 +53,7 @@ void clock_actor_execute_step(ACTOR *actor, int argc, char **argv)
     fprintf(stdout, "%-25s%-25s%-25s%-25s%-25s\n", "infec1", "infec2", "population1", "population2", "population3");
     for (int i = 0; i < LAND_CELL_COUNT; ++i)
     {
-        MPI_Ssend(NULL, 0, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD);
+        MPI_Bsend(NULL, 0, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD);
         MPI_Recv(buf, 5, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         fprintf(stdout, "%-25d%-25d%-25d%-25d%-25d\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
     }

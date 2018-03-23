@@ -4,8 +4,8 @@ LFLAGS = -lm
 
 EXE = demo
 
-INC = actor.h main_actor.h msg_tag.h pool.h clock_actor.h landcell_actor.h squirrel_actor.h squirrel-functions.h ran2.h
-SRC = actor.c main_actor.c main.c pool.c clock_actor.c landcell_actor.c squirrel_actor.c squirrel-functions.c ran2.c
+INC = actor.h msg_tag.h pool.h squirrel-functions.h ran2.h customized_actors.h
+SRC = actor.c main_actor.c main.c pool.c clock_actor.c landcell_actor.c squirrel_actor.c squirrel-functions.c ran2.c customized_actors.c
 OBJ = $(SRC:.c=.o)
 
 all: $(EXE)

@@ -2,19 +2,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
 #include <mpi.h>
 
 #include "actor.h"
-#include "landcell_actor.h"
+#include "customized_actors.h"
 #include "pool.h"
-#include "msg_tag.h"
 #include "configurations.h"
 #include "squirrel-functions.h"
-
-#define HOP_INTERVAL 0.2
-#define HOP_HISTORY_SIZE 50
-#define WILL_DEATH_AFTER_HOP 50
 
 void squirrel_actor_on_message(ACTOR *actor, MPI_Status *status);
 void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv);
@@ -22,7 +16,6 @@ void squirrel_actor_new_actor(ACTOR *actor, char *type, int count);
 void squirrel_actor_pre_process(ACTOR *actor);
 void squirrel_actor_terminate(ACTOR *actor);
 
-int squirrel_rank;
 long seed;
 float coordination[2] = {0.0, 0.0};
 int landcell_to_rank[LAND_CELL_COUNT];
@@ -48,6 +41,7 @@ void create_squirrel_actor(ACTOR *actor)
     memset(population_influx_history, 0, HOP_HISTORY_SIZE * sizeof(int));
     memset(infection_level_history, 0, HOP_HISTORY_SIZE * sizeof(int));
 
+    int squirrel_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &squirrel_rank);
     seed = -1 - squirrel_rank;
     initialiseRNG(&seed);
@@ -76,7 +70,7 @@ void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv)
     int landcell = getCellFromPosition(new_x, new_y);
 
     // send to landcells to declare a hop
-    MPI_Ssend(&healthy, 1, MPI_INT, landcell_to_rank[landcell], LANDCELL_ON_HOP_TAG, MPI_COMM_WORLD);
+    MPI_Bsend(&healthy, 1, MPI_INT, landcell_to_rank[landcell], LANDCELL_ON_HOP_TAG, MPI_COMM_WORLD);
 
     int infection_level, population_influx;
     MPI_Recv(&infection_level, 1, MPI_INT, landcell_to_rank[landcell], LANDCELL_ON_HOP_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -144,15 +138,19 @@ void squirrel_actor_new_actor(ACTOR *actor, char *type, int count)
 {
     if (strcmp(actor->type, "SQUIRREL") == 0 && strcmp(actor->type, "SQUIRREL") == 0)
     {
+        MPI_Request *squirrel_requests = (MPI_Request *) malloc(sizeof(MPI_Request) * 3 * count);
+        int squirrel_rank;
         for (int i = 0; i < count; ++i)
         {
             squirrel_rank = startWorkerProcess();
-            MPI_Ssend("SQUIRREL", 9, MPI_CHAR, squirrel_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+            MPI_Issend("SQUIRREL", 9, MPI_CHAR, squirrel_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD, &squirrel_requests[3 * i]);
             // send the coords
-            MPI_Ssend(coordination, 2, MPI_FLOAT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD);
+            MPI_Issend(coordination, 2, MPI_FLOAT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD, &squirrel_requests[3 * i + 1]);
             // send landcell_to_rank
-            MPI_Ssend(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD);
+            MPI_Issend(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD, &squirrel_requests[3 * i + 2]);
         }
+        MPI_Waitall(3 * count, squirrel_requests, MPI_STATUS_IGNORE);
+        free(squirrel_requests);
     }
 }
 

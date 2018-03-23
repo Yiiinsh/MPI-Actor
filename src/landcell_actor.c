@@ -2,13 +2,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
 #include <mpi.h>
 
 #include "actor.h"
-#include "landcell_actor.h"
+#include "customized_actors.h"
 #include "pool.h"
-#include "msg_tag.h"
 #include "configurations.h"
 
 void landcell_actor_on_message(ACTOR *actor, MPI_Status *status);
@@ -48,8 +46,8 @@ void landcell_actor_on_message(ACTOR *actor, MPI_Status *status)
     {
         int health;
         MPI_Recv(&health, 1, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Ssend(&infection_level[1], 1, MPI_INT, source, tag, MPI_COMM_WORLD);
-        MPI_Ssend(&population_influx[2], 1, MPI_INT, source, tag, MPI_COMM_WORLD);
+        MPI_Bsend(&infection_level[1], 1, MPI_INT, source, tag, MPI_COMM_WORLD);
+        MPI_Bsend(&population_influx[2], 1, MPI_INT, source, tag, MPI_COMM_WORLD);
 
         ++current_population_influx;
         if(!health) ++current_infection_level;
@@ -61,7 +59,7 @@ void landcell_actor_on_message(ACTOR *actor, MPI_Status *status)
         buf[0] = infection_level[0], buf[1] = infection_level[1];
         buf[2] = population_influx[0], buf[3] = population_influx[1], buf[4] = population_influx[2];
         MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Ssend(buf, 5, MPI_INT, source, tag, MPI_COMM_WORLD);
+        MPI_Bsend(buf, 5, MPI_INT, source, tag, MPI_COMM_WORLD);
         
         /* Month passed, renew attrs */
         infection_level[0] = infection_level[1], infection_level[1] = current_infection_level;

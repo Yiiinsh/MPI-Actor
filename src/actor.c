@@ -4,7 +4,10 @@
 
 #include "actor.h"
 
-/* General actor behaviour process, call to start an actor */
+/* 
+ * Start actor after actor has been created 
+ * @param(actor) : pointer to the created actor
+ */
 void actor_start(struct __actor *actor)
 {
     if (NULL == actor)
@@ -30,7 +33,7 @@ void actor_start(struct __actor *actor)
                 actor->execute_step(actor, 0, NULL);
             }
         }
-        flag = 0;
+        flag = 0; // clean up flag to enter next loop
 
         if (NULL != actor->on_message)
         {

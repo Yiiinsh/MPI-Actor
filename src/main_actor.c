@@ -22,7 +22,8 @@ void main_actor_pre_process(ACTOR *actor);
  */
 void main_actor_post_process(ACTOR *actor);
 
-long seed; // radom number generator seeds
+extern int rank;
+long seed;                             // radom number generator seeds
 int landcell_to_rank[LAND_CELL_COUNT]; // mapping landcell id to rank
 
 void create_main_actor(ACTOR *actor)
@@ -40,9 +41,7 @@ void create_main_actor(ACTOR *actor)
 
     memset(landcell_to_rank, -1, sizeof(int) * LAND_CELL_COUNT);
 
-    int main_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &main_rank);
-    seed = -1 - main_rank;
+    seed = -1 - rank;
     initialiseRNG(&seed);
 }
 
@@ -52,7 +51,7 @@ void create_main_actor(ACTOR *actor)
  */
 void main_actor_pre_process(ACTOR *actor)
 {
-    /* Init necessary actors in a blocking way to ensure the start order */
+    /* Init necessary actors and ensure the start order */
 
     /* landcell actors */
     MPI_Request landcell_requests[LAND_CELL_COUNT];
@@ -62,30 +61,48 @@ void main_actor_pre_process(ACTOR *actor)
         landcell_rank = startWorkerProcess();
         MPI_Issend("LANDCELL", 9, MPI_CHAR, landcell_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD, &landcell_requests[i]);
         landcell_to_rank[i] = landcell_rank;
+
+        if (DEBUG)
+            fprintf(stdout, "[MAIN] Create landcell on rank %d\n", landcell_rank);
     }
     MPI_Waitall(LAND_CELL_COUNT, landcell_requests, MPI_STATUS_IGNORE);
 
+    /* clock actors and activate later */
+    int clock_rank = startWorkerProcess();
+
     /* squirrel actors */
-    MPI_Request squirrel_requests[SQUIRREL_COUNT * 3];
     int squirrel_rank;
+    
+    /* coords, landcell_to_rank and clock_rank in one message */
+    float buf[2 + LAND_CELL_COUNT + 1];
+    buf[0] = 0.0, buf[1] = 0.0;
+    for (int i = 2; i < 2 + LAND_CELL_COUNT; ++i)
+    {
+        buf[i] = (float)landcell_to_rank[i - 2];
+    }
+    buf[2 + LAND_CELL_COUNT] = (float)clock_rank;
+
     for (int i = 0; i < SQUIRREL_COUNT; ++i)
     {
         squirrel_rank = startWorkerProcess();
-        MPI_Issend("SQUIRREL", 9, MPI_CHAR, squirrel_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD, &squirrel_requests[3 * i]);
-        
-        // send init coords
-        float coordination[2];
-        squirrelStep(0, 0, &coordination[0], &coordination[1], &seed);
-        MPI_Issend(coordination, 2, MPI_FLOAT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD, &squirrel_requests[3 * i + 1]);
-        // send landcell_to_rank
-        MPI_Issend(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD, &squirrel_requests[3 * i + 2]);
-    }
-    MPI_Waitall(SQUIRREL_COUNT * 3, squirrel_requests, MPI_STATUS_IGNORE);
+        MPI_Ssend("SQUIRREL", 9, MPI_CHAR, squirrel_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+        MPI_Ssend(buf, 2 + LAND_CELL_COUNT + 1, MPI_FLOAT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD);
 
-    /* clock actors */
-    int clock_rank = startWorkerProcess();
+        // set init infected squirrels
+        if (i < 4)
+        {
+            MPI_Bsend(NULL, 0, MPI_INT, squirrel_rank, SQUIRREL_INFECT_TAG, MPI_COMM_WORLD);
+        }
+
+        if (DEBUG)
+            fprintf(stdout, "[MAIN] Create squirrel on rank %d\n", squirrel_rank);
+    }
+
+    /* Activate clock */
     MPI_Ssend("CLOCK", 6, MPI_CHAR, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
     MPI_Ssend(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+    if (DEBUG)
+        fprintf(stdout, "[MAIN] Create clock on rank %d\n", clock_rank);
 }
 
 /* 
@@ -94,9 +111,13 @@ void main_actor_pre_process(ACTOR *actor)
  */
 void main_actor_post_process(ACTOR *actor)
 {
+    if (DEBUG)
+        fprintf(stdout, "[MAIN %d] Postprocessing...\n", rank);
     int main_actor_status = masterPoll();
     while (main_actor_status)
     {
         main_actor_status = masterPoll();
     }
+    if (DEBUG)
+        fprintf(stdout, "[MAIN %d] Postprocessing done\n", rank);
 }

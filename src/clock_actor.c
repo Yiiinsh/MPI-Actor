@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include <mpi.h>
 
 #include "customized_actors.h"
@@ -14,8 +15,11 @@ void clock_actor_execute_step(ACTOR *actor, int argc, char **argv);
 void clock_actor_pre_process(ACTOR *actor);
 void clock_actor_terminate(ACTOR *actor);
 
-int current_month = 0;
-int landcell_to_rank[LAND_CELL_COUNT];
+extern int rank;                                                                                                                     // rank
+int current_month = 0;                                                                                                               // current month
+int clock_landcell_to_rank[LAND_CELL_COUNT];                                                                                         // landcell_to_rank map
+int health_count = SQUIRREL_COUNT - SQUIRREL_INFECT_ON_INIT, infected_count = SQUIRREL_INFECT_ON_INIT, total_count = SQUIRREL_COUNT; // statistics
+time_t base, curr;                                                                                                                   // current time and month base time
 
 void create_clock_actor(ACTOR *actor)
 {
@@ -29,6 +33,9 @@ void create_clock_actor(ACTOR *actor)
     actor->pre_process = &clock_actor_pre_process;
     actor->post_process = NULL;
     actor->terminate = &clock_actor_terminate;
+
+    base = time(&base);
+    curr = time(&curr);
 }
 
 void clock_actor_on_message(ACTOR *actor, MPI_Status *status)
@@ -39,6 +46,21 @@ void clock_actor_on_message(ACTOR *actor, MPI_Status *status)
 
     switch (tag)
     {
+    case SQUIRREL_TERMINATE_TAG: /* Squirrel Terminate */
+        MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        --total_count;
+        --infected_count;
+        break;
+    case SQUIRREL_INFECT_TAG: /* Squirrel Infected */
+        MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        --health_count;
+        ++infected_count;
+        break;
+    case SQUIRREL_BORN_TAG: /* Squirrel Born */
+        MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        ++total_count;
+        ++health_count;
+        break;
     default:
         break;
     }
@@ -46,42 +68,43 @@ void clock_actor_on_message(ACTOR *actor, MPI_Status *status)
 
 void clock_actor_execute_step(ACTOR *actor, int argc, char **argv)
 {
-    sleep(MONTH_STEP);
-
-    int buf[5];
-    fprintf(stdout, "[MONTH %3d]\n", current_month);
-    fprintf(stdout, "%-25s%-25s%-25s%-25s%-25s\n", "infec1", "infec2", "population1", "population2", "population3");
-    for (int i = 0; i < LAND_CELL_COUNT; ++i)
+    /* Month simulation */
+    time(&curr);
+    if (difftime(curr, base) >= MONTH_STEP) /* Month passed */
     {
-        MPI_Bsend(NULL, 0, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD);
-        MPI_Recv(buf, 5, MPI_INT, landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        fprintf(stdout, "%-25d%-25d%-25d%-25d%-25d\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
-    }
-    fprintf(stdout, "\n");
+        /* Update timestamp */
+        time(&base);
 
-    ++current_month;
-    if (current_month > MONTH_LIMIT)
-    {
-        /* Terminate landcells */
-        MPI_Request requests[LAND_CELL_COUNT];
+        int buf[2];
+        fprintf(stdout, "[MONTH %3d] Health: %d, Infected: %d, Total: %d\n", current_month, health_count, infected_count, total_count);
+        fprintf(stdout, "%-25s%-25s%-25s\n", "landcell", "population_influx", "infection_level");
+        /* Receive metrics and print */
         for (int i = 0; i < LAND_CELL_COUNT; ++i)
         {
-            MPI_Issend(NULL, 0, MPI_INT, landcell_to_rank[i], LANDCELL_TERMINATE_TAG, MPI_COMM_WORLD, &requests[i]);
+            MPI_Ssend(NULL, 0, MPI_INT, clock_landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD);
+            MPI_Recv(buf, 2, MPI_INT, clock_landcell_to_rank[i], LANDCELL_QUERY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            fprintf(stdout, "%-25d%-25d%-25d\n", i + 1, buf[1], buf[0]);
         }
-        MPI_Waitall(LAND_CELL_COUNT, requests, MPI_STATUS_IGNORE);
+        fprintf(stdout, "\n");
 
-        actor->terminate(actor);
-        shutdownPool();
+        ++current_month;
+        if (current_month >= MONTH_LIMIT || total_count >= SQUIRREL_LIMIT)
+        {
+            actor->terminate(actor);
+        }
     }
 }
 
 void clock_actor_pre_process(ACTOR *actor)
 {
     /* Recv the rank of landcells */
-    MPI_Recv(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, RANK_MAIN_ACTOR, ACTOR_CREATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(clock_landcell_to_rank, LAND_CELL_COUNT, MPI_INT, RANK_MAIN_ACTOR, ACTOR_CREATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 void clock_actor_terminate(ACTOR *actor)
 {
+    shutdownPool();
     actor->event_loop = false;
+    fprintf(stderr, "Simulation restrictions meet, aborting......\n");
+    MPI_Abort(MPI_COMM_WORLD, SIMULATION_ERROR);
 }

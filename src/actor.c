@@ -3,6 +3,7 @@
 #include <mpi.h>
 
 #include "actor.h"
+#include "pool.h"
 
 /* 
  * Start actor after actor has been created 

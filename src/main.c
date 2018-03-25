@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         char type[ACTOR_TYPE_NAME_LIMIT];
         memset(type, '\0', ACTOR_TYPE_NAME_LIMIT);
         MPI_Recv(type, ACTOR_TYPE_NAME_LIMIT, MPI_CHAR, RANK_MAIN_ACTOR, ACTOR_CREATE_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+        
         // create actor and start
         create_actor(type, &actor);
         actor_start(&actor);

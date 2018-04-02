@@ -114,7 +114,7 @@ void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv)
     }
 
     /* Infection */
-    if (healthy && willCatchDisease(get_avg_infection(), &seed))
+    if (current_steps > 50 && healthy && willCatchDisease(get_avg_infection(), &seed))
     {
         if (DEBUG)
             fprintf(stdout, "[SQUIRREL %d] Infected\n", rank);
@@ -186,21 +186,8 @@ void squirrel_actor_terminate(ACTOR *actor)
 /* Update infection level history and population influx history after every hop */
 void hoply_update(int new_infection_level, int new_population_influx)
 {
-    if (current_steps < HOP_HISTORY_SIZE)
-    {
-        infection_level_history[current_steps] = new_infection_level;
-        population_influx_history[current_steps] = new_population_influx;
-    }
-    else /* leftshift */
-    {
-        for (int i = 0; i < HOP_HISTORY_SIZE - 1; ++i)
-        {
-            infection_level_history[i] = infection_level_history[i + 1];
-            population_influx_history[i] = population_influx_history[i + 1];
-        }
-        infection_level_history[HOP_HISTORY_SIZE - 1] = new_infection_level;
-        population_influx_history[HOP_HISTORY_SIZE - 1] = new_population_influx;
-    }
+    infection_level_history[current_steps % HOP_HISTORY_SIZE] = new_infection_level;
+    population_influx_history[current_steps % HOP_HISTORY_SIZE] = new_population_influx;
 }
 
 /* Average of population influx history */

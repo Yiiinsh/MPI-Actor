@@ -72,21 +72,19 @@ void landcell_actor_on_message(ACTOR *actor, MPI_Status *status)
     }
     case LANDCELL_QUERY_TAG: /* Clock query every month */
     {
-        /* Update history records */
-        monthly_update();
-
         int buf[2]; // send buf
         buf[0] = get_infection_level();
         buf[1] = get_population_influx();
 
         /* Receive query message and send metric<infection_level, population> back  */
         MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Bsend(buf, 2, MPI_INT, source, LANDCELL_QUERY_TAG, MPI_COMM_WORLD);
+        MPI_Bsend(buf, 2, MPI_INT, source, tag, MPI_COMM_WORLD);
 
         /* Update statistics */
-        ++month;
+        monthly_update();
         current_infection_level = 0;
         current_population_influx = 0;
+        ++month;
 
         break;
     }
@@ -107,26 +105,8 @@ void landcell_actor_terminate(ACTOR *actor)
 /* Update history records, first 3 month to init records, leftshift afterwards to keep the latest n month figures */
 void monthly_update()
 {
-    if (0 == month)
-    {
-        infection_level[0] = current_infection_level;
-        population_influx[0] = current_population_influx;
-    }
-    else if (1 == month)
-    {
-        infection_level[1] = current_infection_level;
-        population_influx[1] = current_population_influx;
-    }
-    else if (2 == month)
-    {
-        infection_level[0] = infection_level[1], infection_level[1] = current_infection_level;
-        population_influx[2] = current_population_influx;
-    }
-    else
-    {
-        infection_level[0] = infection_level[1], infection_level[1] = current_infection_level;
-        population_influx[0] = population_influx[1], population_influx[1] = population_influx[2], population_influx[2] = current_population_influx;
-    }
+    infection_level[month % 2] = current_infection_level;
+    population_influx[month % 3] = current_population_influx;
 }
 
 /* Get infection level for latest 2 months */

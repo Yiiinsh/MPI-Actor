@@ -69,6 +69,7 @@ void main_actor_pre_process(ACTOR *actor)
 
     /* clock actors and activate later */
     int clock_rank = startWorkerProcess();
+    MPI_Ssend("CLOCK", 6, MPI_CHAR, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
 
     /* squirrel actors */
     int squirrel_rank;
@@ -91,7 +92,7 @@ void main_actor_pre_process(ACTOR *actor)
         // set init infected squirrels
         if (i < 4)
         {
-            MPI_Bsend(NULL, 0, MPI_INT, squirrel_rank, SQUIRREL_INFECT_TAG, MPI_COMM_WORLD);
+            MPI_Ssend(NULL, 0, MPI_INT, squirrel_rank, SQUIRREL_INFECT_TAG, MPI_COMM_WORLD);
         }
 
         if (DEBUG)
@@ -99,7 +100,6 @@ void main_actor_pre_process(ACTOR *actor)
     }
 
     /* Activate clock */
-    MPI_Ssend("CLOCK", 6, MPI_CHAR, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
     MPI_Ssend(landcell_to_rank, LAND_CELL_COUNT, MPI_INT, clock_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
     if (DEBUG)
         fprintf(stdout, "[MAIN] Create clock on rank %d\n", clock_rank);

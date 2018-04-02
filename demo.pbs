@@ -1,0 +1,13 @@
+#!/bin/bash --login
+#PBS -A d154
+#PBS -l select=1
+#PBS -l walltime=00:60:00
+#PBD -j oe
+
+cd $PBS_O_WORKDIR
+
+echo "Starting job $PBS_JOBID at `date`"
+
+mpirun -n 300 ./demo
+
+echo "Finished job $PBS_JOBID at `date`"

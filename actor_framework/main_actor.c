@@ -8,7 +8,7 @@
 #include "customized_actors.h"
 #include "pool.h"
 #include "configurations.h"
-#include "squirrel-functions.h"
+#include "../demo_squirrel_solution/squirrel-functions.h"
 
 /* 
  * PreProcess for setup,  !!! customized it to create initial customized actors !!!

@@ -62,6 +62,7 @@ void squirrel_actor_on_message(ACTOR *actor, MPI_Status *status)
     {
         MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         healthy = 0;
+        current_steps = 50;
         break;
     }
     case SQUIRREL_TERMINATE_TAG:
@@ -93,7 +94,7 @@ void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv)
     int buf[2];
     if (DEBUG)
             fprintf(stdout, "[SQUIRREL %d] Step to %d\n", rank, squirrel_landcell_to_rank[landcell]);
-    MPI_Ssend(&healthy, 1, MPI_INT, squirrel_landcell_to_rank[landcell], LANDCELL_ON_HOP_TAG, MPI_COMM_WORLD);
+    MPI_Send(&healthy, 1, MPI_INT, squirrel_landcell_to_rank[landcell], LANDCELL_ON_HOP_TAG, MPI_COMM_WORLD);
     MPI_Recv(buf, 2, MPI_INT, squirrel_landcell_to_rank[landcell], LANDCELL_ON_HOP_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     if (DEBUG)
             fprintf(stdout, "[SQUIRREL %d] Finish step to %d\n", rank, squirrel_landcell_to_rank[landcell]);
@@ -110,7 +111,7 @@ void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv)
             fprintf(stdout, "[SQUIRREL %d] Reproduce\n", rank);
         actor->new_actor(actor, "SQUIRREL", 1);
         /* Notify clock */
-        MPI_Bsend(NULL, 0, MPI_INT, clock_rank, SQUIRREL_BORN_TAG, MPI_COMM_WORLD);
+        MPI_Send(NULL, 0, MPI_INT, clock_rank, SQUIRREL_BORN_TAG, MPI_COMM_WORLD);
     }
 
     /* Infection */
@@ -120,7 +121,7 @@ void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv)
             fprintf(stdout, "[SQUIRREL %d] Infected\n", rank);
         healthy = 0;
         /* Notify clock */
-        MPI_Bsend(NULL, 0, MPI_INT, clock_rank, SQUIRREL_INFECT_TAG, MPI_COMM_WORLD);
+        MPI_Send(NULL, 0, MPI_INT, clock_rank, SQUIRREL_INFECT_TAG, MPI_COMM_WORLD);
     }
 
     /* Death */
@@ -130,7 +131,7 @@ void squirrel_actor_execute_step(ACTOR *actor, int argc, char **argv)
             fprintf(stdout, "[SQUIRREL %d] Dead\n", rank);
         actor->terminate(actor);
         /* Notify clock */
-        MPI_Bsend(NULL, 0, MPI_INT, clock_rank, SQUIRREL_TERMINATE_TAG, MPI_COMM_WORLD);
+        MPI_Send(NULL, 0, MPI_INT, clock_rank, SQUIRREL_TERMINATE_TAG, MPI_COMM_WORLD);
     }
 
     /* Squirrel sleep for nanosecs */
@@ -158,8 +159,8 @@ void squirrel_actor_new_actor(ACTOR *actor, char *type, int count)
         buf[2 + LAND_CELL_COUNT] = (float)clock_rank;
 
         /* Create new squirrel and send args */
-        MPI_Bsend("SQUIRREL", 9, MPI_CHAR, squirrel_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
-        MPI_Bsend(buf, 2 + LAND_CELL_COUNT + 1, MPI_FLOAT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD);
+        MPI_Send("SQUIRREL", 9, MPI_CHAR, squirrel_rank, ACTOR_CREATE_TAG, MPI_COMM_WORLD);
+        MPI_Send(buf, 2 + LAND_CELL_COUNT + 1, MPI_FLOAT, squirrel_rank, SQUIRREL_PREPROCESS_TAG, MPI_COMM_WORLD);
     }
 }
 

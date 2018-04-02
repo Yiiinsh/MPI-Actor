@@ -59,7 +59,7 @@ void landcell_actor_on_message(ACTOR *actor, MPI_Status *status)
 
         /* Receive on_hop message and send infection_level and population_influx back */
         MPI_Recv(&health, 1, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Bsend(buf, 2, MPI_INT, source, tag, MPI_COMM_WORLD);
+        MPI_Send(buf, 2, MPI_INT, source, tag, MPI_COMM_WORLD);
 
         /* Update statistics */
         ++current_population_influx;
@@ -78,7 +78,7 @@ void landcell_actor_on_message(ACTOR *actor, MPI_Status *status)
 
         /* Receive query message and send metric<infection_level, population> back  */
         MPI_Recv(NULL, 0, MPI_INT, source, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Bsend(buf, 2, MPI_INT, source, tag, MPI_COMM_WORLD);
+        MPI_Send(buf, 2, MPI_INT, source, tag, MPI_COMM_WORLD);
 
         /* Update statistics */
         monthly_update();

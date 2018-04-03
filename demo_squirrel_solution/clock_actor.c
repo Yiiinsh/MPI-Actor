@@ -19,7 +19,7 @@ void clock_actor_terminate(ACTOR *actor);
 extern int rank;                                                                                                                     // rank
 int current_month = 0;                                                                                                               // current month
 int clock_landcell_to_rank[LAND_CELL_COUNT];                                                                                         // landcell_to_rank map
-int health_count = SQUIRREL_COUNT - SQUIRREL_INFECT_ON_INIT, infected_count = SQUIRREL_INFECT_ON_INIT, total_count = SQUIRREL_COUNT; // statistics
+int health_count = 0, infected_count = 0, total_count = 0;                                                                           // statistics
 time_t base, curr;                                                                                                                   // current time and month base time
 
 void create_clock_actor(ACTOR *actor)

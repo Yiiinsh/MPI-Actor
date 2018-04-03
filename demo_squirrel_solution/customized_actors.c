@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "customized_actors.h"
+#include "../actor_framework/customized_actors.h"
+#include "actor_factory.h"
 
 /* 
  * General Actors Creation Factory , extend it for specified usage

@@ -4,11 +4,12 @@
 #include <string.h>
 #include <mpi.h>
 
-#include "actor.h"
-#include "customized_actors.h"
-#include "pool.h"
-#include "configurations.h"
-#include "../demo_squirrel_solution/squirrel-functions.h"
+#include "../actor_framework/actor.h"
+#include "../actor_framework/customized_actors.h"
+#include "../actor_framework/pool.h"
+#include "../actor_framework/configurations.h"
+#include "squirrel-functions.h"
+#include "solution_configurations.h"
 
 /* 
  * PreProcess for setup,  !!! customized it to create initial customized actors !!!

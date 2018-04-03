@@ -4,19 +4,17 @@
 #include "actor.h"
 
 /* 
- * General Actors Creation Factory 
+ * General Actors Creation Factory , customized it in your solution
  * @param(type) : type of the actor to be created
  * @out(actor) : pointer to the created actor
  */
 void create_actor(char *type, ACTOR *actor);
 
-/* --------- Customized Actors --------- */
-
+/* 
+ * Main actor creations
+ * @param(actor) : main actor
+ */
 void create_main_actor(ACTOR *actor);
-void create_clock_actor(ACTOR *actor);
-void create_landcell_actor(ACTOR *actor);
-void create_squirrel_actor(ACTOR *actor);
 
-/* --------- End Customized Actors --------- */
 
 #endif

@@ -5,9 +5,10 @@
 #include <mpi.h>
 
 #include "../actor_framework/actor.h"
-#include "../actor_framework/customized_actors.h"
 #include "../actor_framework/pool.h"
 #include "../actor_framework/configurations.h"
+#include "actor_factory.h"
+#include "solution_configurations.h"
 
 void landcell_actor_on_message(ACTOR *actor, MPI_Status *status);
 void landcell_actor_terminate(ACTOR *actor);

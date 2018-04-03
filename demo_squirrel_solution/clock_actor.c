@@ -6,9 +6,10 @@
 #include <time.h>
 #include <mpi.h>
 
-#include "../actor_framework/customized_actors.h"
 #include "../actor_framework/pool.h"
 #include "../actor_framework/configurations.h"
+#include "actor_factory.h"
+#include "solution_configurations.h"
 
 void clock_actor_on_message(ACTOR *actor, MPI_Status *status);
 void clock_actor_execute_step(ACTOR *actor, int argc, char **argv);
